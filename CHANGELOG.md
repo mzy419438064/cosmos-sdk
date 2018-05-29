@@ -3,6 +3,7 @@
 BREAKING CHANGES
 
 FEATURES
+* [x/auth] Added AccountNumbers to BaseAccount and StdTxs to allow for replay protection with account pruning
 
 IMPROVEMENTS
 * export command now writes current validator set for Tendermint
