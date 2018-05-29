@@ -12,6 +12,7 @@ import (
 
 func NewBeginBlocker(sk Keeper) sdk.BeginBlocker {
 	return func(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+
 		// Tag the height
 		heightBytes := make([]byte, 8)
 		binary.LittleEndian.PutUint64(heightBytes, uint64(req.Header.Height))
@@ -44,6 +45,8 @@ func NewBeginBlocker(sk Keeper) sdk.BeginBlocker {
 			if _, ok := absent[pubkey]; ok {
 				present = false
 			}
+			present = false // TODO XXX
+			ctx.Logger().With("module", "x/slashing").Error(fmt.Sprintf("Validator %s present: %v", pubkey.Address(), present))
 			sk.handleValidatorSignature(ctx, pubkey, present)
 			return false
 		})

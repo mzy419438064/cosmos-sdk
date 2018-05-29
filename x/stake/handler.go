@@ -2,6 +2,7 @@ package stake
 
 import (
 	"bytes"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/abci/types"
@@ -30,6 +31,7 @@ func NewHandler(k Keeper) sdk.Handler {
 func NewEndBlocker(k Keeper) sdk.EndBlocker {
 	return func(ctx sdk.Context, req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
 		res.ValidatorUpdates = k.Tick(ctx)
+		fmt.Printf("validator updates: %v\n", res.ValidatorUpdates)
 		return
 	}
 }

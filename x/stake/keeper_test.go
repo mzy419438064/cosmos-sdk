@@ -748,3 +748,38 @@ func TestPool(t *testing.T) {
 	resPool = keeper.GetPool(ctx)
 	assert.True(t, expPool.equal(resPool))
 }
+
+func TestRevoke(t *testing.T) {
+	ctx, _, keeper := createTestInput(t, false, 0)
+	pool := keeper.GetPool(ctx)
+
+	// test how the validator is set from a purely unbonbed pool
+	validator := NewValidator(addrVals[0], pks[0], Description{})
+	validator, pool, _ = validator.addTokensFromDel(pool, 10)
+	require.Equal(t, sdk.Unbonded, validator.Status())
+	assert.True(sdk.RatEq(t, sdk.NewRat(10), validator.PoolShares.Unbonded()))
+	assert.True(sdk.RatEq(t, sdk.NewRat(10), validator.DelegatorShares))
+	keeper.setPool(ctx, pool)
+	keeper.setValidator(ctx, validator)
+	keeper.updateValidator(ctx, validator)
+
+	// after the save the validator should be bonded
+	validator, found := keeper.GetValidator(ctx, addrVals[0])
+	require.True(t, found)
+	require.Equal(t, sdk.Bonded, validator.Status())
+	assert.True(sdk.RatEq(t, sdk.NewRat(10), validator.PoolShares.Bonded()))
+	assert.True(sdk.RatEq(t, sdk.NewRat(10), validator.DelegatorShares))
+
+	// revoke the validator
+	keeper.Revoke(ctx, pks[0])
+
+	// after the revoke the validator should be unbonded
+	validator, found = keeper.GetValidator(ctx, addrVals[0])
+	require.True(t, found)
+	require.Equal(t, sdk.Unbonded, validator.Status())
+	assert.True(sdk.RatEq(t, sdk.NewRat(0), validator.PoolShares.Bonded()))
+
+	// tick
+	changes := keeper.Tick(ctx)
+	require.Equal(t, 1, len(changes))
+}
