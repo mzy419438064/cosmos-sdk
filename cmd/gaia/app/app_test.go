@@ -134,7 +134,7 @@ func TestMsgs(t *testing.T) {
 
 	for i, m := range msgs {
 		// Run a CheckDeliver
-		SignCheckDeliver(t, gapp, m.msg, []int64{int64(i)}, false, priv1)
+		SignCheckDeliver(t, gapp, m.msg, []int64{0}, []int64{int64(i)}, false, priv1)
 	}
 }
 
@@ -189,24 +189,24 @@ func TestMsgSendWithAccounts(t *testing.T) {
 	assert.Equal(t, baseAcc, res1.(*auth.BaseAccount))
 
 	// Run a CheckDeliver
-	SignCheckDeliver(t, gapp, sendMsg1, []int64{0}, true, priv1)
+	SignCheckDeliver(t, gapp, sendMsg1, []int64{0}, []int64{0}, true, priv1)
 
 	// Check balances
 	CheckBalance(t, gapp, addr1, "67foocoin")
 	CheckBalance(t, gapp, addr2, "10foocoin")
 
 	// Delivering again should cause replay error
-	SignCheckDeliver(t, gapp, sendMsg1, []int64{0}, false, priv1)
+	SignCheckDeliver(t, gapp, sendMsg1, []int64{0}, []int64{0}, false, priv1)
 
 	// bumping the txnonce number without resigning should be an auth error
-	tx := genTx(sendMsg1, []int64{0}, priv1)
+	tx := genTx(sendMsg1, []int64{0}, []int64{0}, priv1)
 	tx.Signatures[0].Sequence = 1
 	res := gapp.Deliver(tx)
 
 	assert.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnauthorized), res.Code, res.Log)
 
 	// resigning the tx with the bumped sequence should work
-	SignCheckDeliver(t, gapp, sendMsg1, []int64{1}, true, priv1)
+	SignCheckDeliver(t, gapp, sendMsg1, []int64{0}, []int64{1}, true, priv1)
 }
 
 func TestMsgSendMultipleOut(t *testing.T) {
@@ -229,7 +229,7 @@ func TestMsgSendMultipleOut(t *testing.T) {
 	require.Nil(t, err)
 
 	// Simulate a Block
-	SignCheckDeliver(t, gapp, sendMsg2, []int64{0}, true, priv1)
+	SignCheckDeliver(t, gapp, sendMsg2, []int64{0}, []int64{0}, true, priv1)
 
 	// Check balances
 	CheckBalance(t, gapp, addr1, "32foocoin")
@@ -260,7 +260,7 @@ func TestSengMsgMultipleInOut(t *testing.T) {
 	assert.Nil(t, err)
 
 	// CheckDeliver
-	SignCheckDeliver(t, gapp, sendMsg3, []int64{0, 0}, true, priv1, priv4)
+	SignCheckDeliver(t, gapp, sendMsg3, []int64{0, 2}, []int64{0, 0}, true, priv1, priv4)
 
 	// Check balances
 	CheckBalance(t, gapp, addr1, "32foocoin")
@@ -284,14 +284,14 @@ func TestMsgSendDependent(t *testing.T) {
 	require.Nil(t, err)
 
 	// CheckDeliver
-	SignCheckDeliver(t, gapp, sendMsg1, []int64{0}, true, priv1)
+	SignCheckDeliver(t, gapp, sendMsg1, []int64{0}, []int64{0}, true, priv1)
 
 	// Check balances
 	CheckBalance(t, gapp, addr1, "32foocoin")
 	CheckBalance(t, gapp, addr2, "10foocoin")
 
 	// Simulate a Block
-	SignCheckDeliver(t, gapp, sendMsg4, []int64{0}, true, priv2)
+	SignCheckDeliver(t, gapp, sendMsg4, []int64{1}, []int64{0}, true, priv2)
 
 	// Check balances
 	CheckBalance(t, gapp, addr1, "42foocoin")
@@ -334,12 +334,12 @@ func TestIBCMsgs(t *testing.T) {
 		Sequence:  0,
 	}
 
-	SignCheckDeliver(t, gapp, transferMsg, []int64{0}, true, priv1)
+	SignCheckDeliver(t, gapp, transferMsg, []int64{0}, []int64{0}, true, priv1)
 	CheckBalance(t, gapp, addr1, "")
-	SignCheckDeliver(t, gapp, transferMsg, []int64{1}, false, priv1)
-	SignCheckDeliver(t, gapp, receiveMsg, []int64{2}, true, priv1)
+	SignCheckDeliver(t, gapp, transferMsg, []int64{0}, []int64{1}, false, priv1)
+	SignCheckDeliver(t, gapp, receiveMsg, []int64{0}, []int64{2}, true, priv1)
 	CheckBalance(t, gapp, addr1, "10foocoin")
-	SignCheckDeliver(t, gapp, receiveMsg, []int64{3}, false, priv1)
+	SignCheckDeliver(t, gapp, receiveMsg, []int64{0}, []int64{3}, false, priv1)
 }
 
 func TestStakeMsgs(t *testing.T) {
@@ -375,7 +375,7 @@ func TestStakeMsgs(t *testing.T) {
 	createValidatorMsg := stake.NewMsgCreateValidator(
 		addr1, priv1.PubKey(), bondCoin, description,
 	)
-	SignCheckDeliver(t, gapp, createValidatorMsg, []int64{0}, true, priv1)
+	SignCheckDeliver(t, gapp, declareCandidacyMsg, []int64{0}, []int64{0}, true, priv1)
 
 	ctxDeliver := gapp.BaseApp.NewContext(false, abci.Header{})
 	res1 = gapp.accountMapper.GetAccount(ctxDeliver, addr1)
@@ -396,7 +396,7 @@ func TestStakeMsgs(t *testing.T) {
 	editValidatorMsg := stake.NewMsgEditValidator(
 		addr1, description,
 	)
-	SignDeliver(t, gapp, editValidatorMsg, []int64{1}, true, priv1)
+	SignDeliver(t, gapp, editCandidacyMsg, []int64{0}, []int64{1}, true, priv1)
 
 	validator, found = gapp.stakeKeeper.GetValidator(ctxDeliver, addr1)
 	require.True(t, found)
@@ -407,7 +407,7 @@ func TestStakeMsgs(t *testing.T) {
 	delegateMsg := stake.NewMsgDelegate(
 		addr2, addr1, bondCoin,
 	)
-	SignDeliver(t, gapp, delegateMsg, []int64{0}, true, priv2)
+	SignDeliver(t, gapp, delegateMsg, []int64{1}, []int64{0}, true, priv2)
 
 	res2 = gapp.accountMapper.GetAccount(ctxDeliver, addr2)
 	require.Equal(t, genCoins.Minus(sdk.Coins{bondCoin}), res2.GetCoins())
@@ -422,7 +422,7 @@ func TestStakeMsgs(t *testing.T) {
 	unbondMsg := stake.NewMsgUnbond(
 		addr2, addr1, "MAX",
 	)
-	SignDeliver(t, gapp, unbondMsg, []int64{1}, true, priv2)
+	SignDeliver(t, gapp, unbondMsg, []int64{1}, []int64{1}, true, priv2)
 
 	res2 = gapp.accountMapper.GetAccount(ctxDeliver, addr2)
 	require.Equal(t, genCoins, res2.GetCoins())
@@ -474,13 +474,14 @@ func CheckBalance(t *testing.T, gapp *GaiaApp, addr sdk.Address, balExpected str
 	assert.Equal(t, balExpected, fmt.Sprintf("%v", res2.GetCoins()))
 }
 
-func genTx(msg sdk.Msg, seq []int64, priv ...crypto.PrivKeyEd25519) auth.StdTx {
+func genTx(msg sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKeyEd25519) auth.StdTx {
 	sigs := make([]auth.StdSignature, len(priv))
 	for i, p := range priv {
 		sigs[i] = auth.StdSignature{
-			PubKey:    p.PubKey(),
-			Signature: p.Sign(auth.StdSignBytes(chainID, seq, fee, msg)),
-			Sequence:  seq[i],
+			PubKey:        p.PubKey(),
+			Signature:     p.Sign(auth.StdSignBytes(chainID, accnums, seq, fee, msg)),
+			AccountNumber: accnums[i],
+			Sequence:      seq[i],
 		}
 	}
 
@@ -488,10 +489,10 @@ func genTx(msg sdk.Msg, seq []int64, priv ...crypto.PrivKeyEd25519) auth.StdTx {
 
 }
 
-func SignCheckDeliver(t *testing.T, gapp *GaiaApp, msg sdk.Msg, seq []int64, expPass bool, priv ...crypto.PrivKeyEd25519) {
+func SignCheckDeliver(t *testing.T, gapp *GaiaApp, msg sdk.Msg, accnums []int64, seq []int64, expPass bool, priv ...crypto.PrivKeyEd25519) {
 
 	// Sign the tx
-	tx := genTx(msg, seq, priv...)
+	tx := genTx(msg, accnums, seq, priv...)
 
 	// Run a Check
 	res := gapp.Check(tx)
@@ -519,10 +520,10 @@ func SignCheckDeliver(t *testing.T, gapp *GaiaApp, msg sdk.Msg, seq []int64, exp
 // break on check tx the second time you use SignCheckDeliver in a test because
 // the checktx state has not been updated likely because commit is not being
 // called!
-func SignDeliver(t *testing.T, gapp *GaiaApp, msg sdk.Msg, seq []int64, expPass bool, priv ...crypto.PrivKeyEd25519) {
+func SignDeliver(t *testing.T, gapp *GaiaApp, msg sdk.Msg, accnums []int64, seq []int64, expPass bool, priv ...crypto.PrivKeyEd25519) {
 
 	// Sign the tx
-	tx := genTx(msg, seq, priv...)
+	tx := genTx(msg, accnums, seq, priv...)
 
 	// Simulate a Block
 	gapp.BeginBlock(abci.RequestBeginBlock{})

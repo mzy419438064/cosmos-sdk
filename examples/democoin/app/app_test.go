@@ -91,9 +91,9 @@ func TestMsgs(t *testing.T) {
 		{setTrendMsg1},
 	}
 
-	sequences := []int64{0}
+	accnums, sequences := []int64{0}, []int64{0}
 	for i, m := range msgs {
-		sig := priv1.Sign(auth.StdSignBytes(chainID, sequences, fee, m.msg))
+		sig := priv1.Sign(auth.StdSignBytes(chainID, accnums, sequences, fee, m.msg))
 		tx := auth.NewStdTx(m.msg, fee, []auth.StdSignature{{
 			PubKey:    priv1.PubKey(),
 			Signature: sig,
@@ -193,8 +193,8 @@ func TestMsgSendWithAccounts(t *testing.T) {
 	assert.Equal(t, acc1, res1)
 
 	// Sign the tx
-	sequences := []int64{0}
-	sig := priv1.Sign(auth.StdSignBytes(chainID, sequences, fee, sendMsg))
+	accnums, sequences := []int64{0}, []int64{0}
+	sig := priv1.Sign(auth.StdSignBytes(chainID, accnums, sequences, fee, sendMsg))
 	tx := auth.NewStdTx(sendMsg, fee, []auth.StdSignature{{
 		PubKey:    priv1.PubKey(),
 		Signature: sig,
@@ -227,7 +227,7 @@ func TestMsgSendWithAccounts(t *testing.T) {
 
 	// resigning the tx with the bumped sequence should work
 	sequences = []int64{1}
-	sig = priv1.Sign(auth.StdSignBytes(chainID, sequences, fee, tx.Msg))
+	sig = priv1.Sign(auth.StdSignBytes(chainID, accnums, sequences, fee, tx.Msg))
 	tx.Signatures[0].Signature = sig
 	res = bapp.Deliver(tx)
 	assert.Equal(t, sdk.ABCICodeOK, res.Code, res.Log)
@@ -272,14 +272,14 @@ func TestMsgMine(t *testing.T) {
 
 	// Mine and check for reward
 	mineMsg1 := pow.GenerateMsgMine(addr1, 1, 2)
-	SignCheckDeliver(t, bapp, mineMsg1, 0, true)
+	SignCheckDeliver(t, bapp, mineMsg1, 0, 0, true)
 	CheckBalance(t, bapp, "1pow")
 	// Mine again and check for reward
 	mineMsg2 := pow.GenerateMsgMine(addr1, 2, 3)
-	SignCheckDeliver(t, bapp, mineMsg2, 1, true)
+	SignCheckDeliver(t, bapp, mineMsg2, 0, 1, true)
 	CheckBalance(t, bapp, "2pow")
 	// Mine again - should be invalid
-	SignCheckDeliver(t, bapp, mineMsg2, 1, false)
+	SignCheckDeliver(t, bapp, mineMsg2, 0, 2, false)
 	CheckBalance(t, bapp, "2pow")
 
 }
@@ -318,19 +318,19 @@ func TestMsgQuiz(t *testing.T) {
 	assert.Equal(t, acc1, res1)
 
 	// Set the trend, submit a really cool quiz and check for reward
-	SignCheckDeliver(t, bapp, setTrendMsg1, 0, true)
-	SignCheckDeliver(t, bapp, quizMsg1, 1, true)
+	SignCheckDeliver(t, bapp, setTrendMsg1, 0, 0, true)
+	SignCheckDeliver(t, bapp, quizMsg1, 0, 1, true)
 	CheckBalance(t, bapp, "69icecold")
-	SignCheckDeliver(t, bapp, quizMsg2, 2, false) // result without reward
+	SignCheckDeliver(t, bapp, quizMsg2, 0, 2, false) // result without reward
 	CheckBalance(t, bapp, "69icecold")
-	SignCheckDeliver(t, bapp, quizMsg1, 3, true)
+	SignCheckDeliver(t, bapp, quizMsg1, 0, 3, true)
 	CheckBalance(t, bapp, "138icecold")
-	SignCheckDeliver(t, bapp, setTrendMsg2, 4, true) // reset the trend
-	SignCheckDeliver(t, bapp, quizMsg1, 5, false)    // the same answer will nolonger do!
+	SignCheckDeliver(t, bapp, setTrendMsg2, 0, 4, true) // reset the trend
+	SignCheckDeliver(t, bapp, quizMsg1, 0, 5, false)    // the same answer will nolonger do!
 	CheckBalance(t, bapp, "138icecold")
-	SignCheckDeliver(t, bapp, quizMsg2, 6, true) // earlier answer now relavent again
+	SignCheckDeliver(t, bapp, quizMsg2, 0, 6, true) // earlier answer now relavent again
 	CheckBalance(t, bapp, "69badvibesonly,138icecold")
-	SignCheckDeliver(t, bapp, setTrendMsg3, 7, false) // expect to fail to set the trend to something which is not cool
+	SignCheckDeliver(t, bapp, setTrendMsg3, 0, 7, false) // expect to fail to set the trend to something which is not cool
 
 }
 
@@ -382,22 +382,23 @@ func TestHandler(t *testing.T) {
 		Sequence:  0,
 	}
 
-	SignCheckDeliver(t, bapp, transferMsg, 0, true)
+	SignCheckDeliver(t, bapp, transferMsg, 0, 0, true)
 	CheckBalance(t, bapp, "")
-	SignCheckDeliver(t, bapp, transferMsg, 1, false)
-	SignCheckDeliver(t, bapp, receiveMsg, 2, true)
+	SignCheckDeliver(t, bapp, transferMsg, 0, 1, false)
+	SignCheckDeliver(t, bapp, receiveMsg, 0, 2, true)
 	CheckBalance(t, bapp, "10foocoin")
-	SignCheckDeliver(t, bapp, receiveMsg, 3, false)
+	SignCheckDeliver(t, bapp, receiveMsg, 0, 3, false)
 }
 
 // TODO describe the use of this function
-func SignCheckDeliver(t *testing.T, bapp *DemocoinApp, msg sdk.Msg, seq int64, expPass bool) {
+func SignCheckDeliver(t *testing.T, bapp *DemocoinApp, msg sdk.Msg, accnum, seq int64, expPass bool) {
 
 	// Sign the tx
 	tx := auth.NewStdTx(msg, fee, []auth.StdSignature{{
-		PubKey:    priv1.PubKey(),
-		Signature: priv1.Sign(auth.StdSignBytes(chainID, []int64{seq}, fee, msg)),
-		Sequence:  seq,
+		PubKey:        priv1.PubKey(),
+		Signature:     priv1.Sign(auth.StdSignBytes(chainID, []int64{accnum}, []int64{seq}, fee, msg)),
+		AccountNumber: accnum,
+		Sequence:      seq,
 	}})
 
 	// Run a Check

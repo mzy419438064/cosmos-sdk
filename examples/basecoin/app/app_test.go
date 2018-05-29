@@ -136,7 +136,7 @@ func TestMsgs(t *testing.T) {
 
 	for i, m := range msgs {
 		// Run a CheckDeliver
-		SignCheckDeliver(t, bapp, m.msg, []int64{int64(i)}, false, priv1)
+		SignCheckDeliver(t, bapp, m.msg, []int64{0}, []int64{int64(i)}, false, priv1)
 	}
 }
 
@@ -179,7 +179,7 @@ func TestSortGenesis(t *testing.T) {
 	require.Nil(t, err)
 
 	// Ensure we can send
-	SignCheckDeliver(t, bapp, sendMsg5, []int64{0}, true, priv1)
+	SignCheckDeliver(t, bapp, sendMsg5, []int64{0}, []int64{0}, true, priv1)
 }
 
 func TestGenesis(t *testing.T) {
@@ -235,7 +235,7 @@ func TestMsgChangePubKey(t *testing.T) {
 	assert.Equal(t, baseAcc, res1.(*types.AppAccount).BaseAccount)
 
 	// Run a CheckDeliver
-	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, true, priv1)
+	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, []int64{0}, true, priv1)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "67foocoin")
@@ -250,18 +250,18 @@ func TestMsgChangePubKey(t *testing.T) {
 	acc := bapp.accountMapper.GetAccount(ctxDeliver, addr1)
 
 	// send a MsgChangePubKey
-	SignCheckDeliver(t, bapp, changePubKeyMsg, []int64{1}, true, priv1)
+	SignCheckDeliver(t, bapp, changePubKeyMsg, []int64{0}, []int64{1}, true, priv1)
 	acc = bapp.accountMapper.GetAccount(ctxDeliver, addr1)
 
 	assert.True(t, priv2.PubKey().Equals(acc.GetPubKey()))
 
 	// signing a SendMsg with the old privKey should be an auth error
-	tx := genTx(sendMsg1, []int64{2}, priv1)
+	tx := genTx(sendMsg1, []int64{0}, []int64{2}, priv1)
 	res := bapp.Deliver(tx)
 	assert.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnauthorized), res.Code, res.Log)
 
 	// resigning the tx with the new correct priv key should work
-	SignCheckDeliver(t, bapp, sendMsg1, []int64{2}, true, priv2)
+	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, []int64{2}, true, priv2)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "57foocoin")
@@ -290,24 +290,24 @@ func TestMsgSendWithAccounts(t *testing.T) {
 	assert.Equal(t, baseAcc, res1.(*types.AppAccount).BaseAccount)
 
 	// Run a CheckDeliver
-	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, true, priv1)
+	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, []int64{0}, true, priv1)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "67foocoin")
 	CheckBalance(t, bapp, addr2, "10foocoin")
 
 	// Delivering again should cause replay error
-	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, false, priv1)
+	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, []int64{0}, false, priv1)
 
 	// bumping the txnonce number without resigning should be an auth error
-	tx := genTx(sendMsg1, []int64{0}, priv1)
+	tx := genTx(sendMsg1, []int64{0}, []int64{0}, priv1)
 	tx.Signatures[0].Sequence = 1
 	res := bapp.Deliver(tx)
 
 	assert.Equal(t, sdk.ToABCICode(sdk.CodespaceRoot, sdk.CodeUnauthorized), res.Code, res.Log)
 
 	// resigning the tx with the bumped sequence should work
-	SignCheckDeliver(t, bapp, sendMsg1, []int64{1}, true, priv1)
+	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, []int64{1}, true, priv1)
 }
 
 func TestMsgSendMultipleOut(t *testing.T) {
@@ -331,7 +331,7 @@ func TestMsgSendMultipleOut(t *testing.T) {
 	require.Nil(t, err)
 
 	// Simulate a Block
-	SignCheckDeliver(t, bapp, sendMsg2, []int64{0}, true, priv1)
+	SignCheckDeliver(t, bapp, sendMsg2, []int64{0}, []int64{0}, true, priv1)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "32foocoin")
@@ -364,7 +364,7 @@ func TestSengMsgMultipleInOut(t *testing.T) {
 	assert.Nil(t, err)
 
 	// CheckDeliver
-	SignCheckDeliver(t, bapp, sendMsg3, []int64{0, 0}, true, priv1, priv4)
+	SignCheckDeliver(t, bapp, sendMsg3, []int64{0, 1}, []int64{0, 0}, true, priv1, priv4)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "32foocoin")
@@ -392,14 +392,14 @@ func TestMsgSendDependent(t *testing.T) {
 	assert.Nil(t, err)
 
 	// CheckDeliver
-	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, true, priv1)
+	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, []int64{0}, true, priv1)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "32foocoin")
 	CheckBalance(t, bapp, addr2, "10foocoin")
 
 	// Simulate a Block
-	SignCheckDeliver(t, bapp, sendMsg4, []int64{0}, true, priv2)
+	SignCheckDeliver(t, bapp, sendMsg4, []int64{1}, []int64{0}, true, priv2)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "42foocoin")
@@ -475,21 +475,22 @@ func TestIBCMsgs(t *testing.T) {
 		Sequence:  0,
 	}
 
-	SignCheckDeliver(t, bapp, transferMsg, []int64{0}, true, priv1)
+	SignCheckDeliver(t, bapp, transferMsg, []int64{0}, []int64{0}, true, priv1)
 	CheckBalance(t, bapp, addr1, "")
-	SignCheckDeliver(t, bapp, transferMsg, []int64{1}, false, priv1)
-	SignCheckDeliver(t, bapp, receiveMsg, []int64{2}, true, priv1)
+	SignCheckDeliver(t, bapp, transferMsg, []int64{0}, []int64{1}, false, priv1)
+	SignCheckDeliver(t, bapp, receiveMsg, []int64{0}, []int64{2}, true, priv1)
 	CheckBalance(t, bapp, addr1, "10foocoin")
-	SignCheckDeliver(t, bapp, receiveMsg, []int64{3}, false, priv1)
+	SignCheckDeliver(t, bapp, receiveMsg, []int64{0}, []int64{3}, false, priv1)
 }
 
-func genTx(msg sdk.Msg, seq []int64, priv ...crypto.PrivKeyEd25519) auth.StdTx {
+func genTx(msg sdk.Msg, accnums []int64, seq []int64, priv ...crypto.PrivKeyEd25519) auth.StdTx {
 	sigs := make([]auth.StdSignature, len(priv))
 	for i, p := range priv {
 		sigs[i] = auth.StdSignature{
-			PubKey:    p.PubKey(),
-			Signature: p.Sign(auth.StdSignBytes(chainID, seq, fee, msg)),
-			Sequence:  seq[i],
+			PubKey:        p.PubKey(),
+			Signature:     p.Sign(auth.StdSignBytes(chainID, accnums, seq, fee, msg)),
+			AccountNumber: accnums[i],
+			Sequence:      seq[i],
 		}
 	}
 
@@ -497,10 +498,10 @@ func genTx(msg sdk.Msg, seq []int64, priv ...crypto.PrivKeyEd25519) auth.StdTx {
 
 }
 
-func SignCheckDeliver(t *testing.T, bapp *BasecoinApp, msg sdk.Msg, seq []int64, expPass bool, priv ...crypto.PrivKeyEd25519) {
+func SignCheckDeliver(t *testing.T, bapp *BasecoinApp, msg sdk.Msg, accnums []int64, seq []int64, expPass bool, priv ...crypto.PrivKeyEd25519) {
 
 	// Sign the tx
-	tx := genTx(msg, seq, priv...)
+	tx := genTx(msg, accnums, seq, priv...)
 	// Run a Check
 	res := bapp.Check(tx)
 	if expPass {
