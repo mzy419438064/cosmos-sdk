@@ -364,7 +364,7 @@ func TestSengMsgMultipleInOut(t *testing.T) {
 	assert.Nil(t, err)
 
 	// CheckDeliver
-	SignCheckDeliver(t, bapp, sendMsg3, []int64{0, 1}, []int64{0, 0}, true, priv1, priv4)
+	SignCheckDeliver(t, bapp, sendMsg3, []int64{0, 2}, []int64{0, 0}, true, priv1, priv4)
 
 	// Check balances
 	CheckBalance(t, bapp, addr1, "32foocoin")

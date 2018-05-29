@@ -355,8 +355,9 @@ func TestStakeMsgs(t *testing.T) {
 		Coins:   genCoins,
 	}
 	acc2 := &auth.BaseAccount{
-		Address: addr2,
-		Coins:   genCoins,
+		Address:       addr2,
+		Coins:         genCoins,
+		AccountNumber: 1,
 	}
 
 	err = setGenesis(gapp, acc1, acc2)
