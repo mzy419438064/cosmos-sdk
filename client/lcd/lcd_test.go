@@ -565,7 +565,6 @@ func doSend(t *testing.T, port, seed string) (receiveAddr string, resultTx ctype
 	sequence := acc.GetSequence()
 
 	fmt.Println("jello")
-	fmt.Println(acc.GetAddress())
 	fmt.Println(accnum)
 	fmt.Println(sequence)
 
@@ -593,7 +592,6 @@ func doIBCTransfer(t *testing.T, port, seed string) (resultTx ctypes.ResultBroad
 	sequence := acc.GetSequence()
 
 	fmt.Println("jello")
-	fmt.Println(acc.GetAddress())
 	fmt.Println(accnum)
 	fmt.Println(sequence)
 
