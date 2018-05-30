@@ -23,7 +23,7 @@ func blockCommand() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  printBlock,
 	}
-	cmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:46657", "Node to connect to")
+	cmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
 	// TODO: change this to false when we can
 	cmd.Flags().Bool(client.FlagTrustNode, true, "Don't verify proofs for responses")
 	cmd.Flags().StringSlice(flagSelect, []string{"header", "tx"}, "Fields to return (header|txs|results)")
