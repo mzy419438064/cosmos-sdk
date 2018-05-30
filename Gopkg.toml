@@ -74,12 +74,12 @@
 
 [[constraint]]
   name = "github.com/tendermint/tendermint"
-  version = "0.19.5-rc1"
+  branch = "dev/ephemeral_port"
 
 [[override]]
   name = "github.com/tendermint/tmlibs"
   version = "~0.8.3-rc0"
-  
+
 # this got updated and broke, so locked to an old working commit ...
 [[override]]
   name = "google.golang.org/genproto"
@@ -88,9 +88,8 @@
   [[constraint]]
   name = "github.com/cosmos/bech32cosmos"
   branch = "master"
-  
+
 
 [prune]
   go-tests = true
   unused-packages = true
-
