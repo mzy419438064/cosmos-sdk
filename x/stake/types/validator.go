@@ -96,7 +96,7 @@ func NewDescription(moniker, identity, website, details string) Description {
 //XXX updateDescription function which enforce limit to number of description characters
 
 // abci validator from stake validator type
-func (v Validator) abciValidator(cdc *wire.Codec) abci.Validator {
+func (v Validator) ABCIValidator(cdc *wire.Codec) abci.Validator {
 	return abci.Validator{
 		PubKey: v.PubKey.Bytes(),
 		Power:  v.PoolShares.Bonded().Evaluate(),
@@ -105,7 +105,7 @@ func (v Validator) abciValidator(cdc *wire.Codec) abci.Validator {
 
 // abci validator from stake validator type
 // with zero power used for validator updates
-func (v Validator) abciValidatorZero(cdc *wire.Codec) abci.Validator {
+func (v Validator) ABCIValidatorZero(cdc *wire.Codec) abci.Validator {
 	return abci.Validator{
 		PubKey: v.PubKey.Bytes(),
 		Power:  0,
@@ -155,7 +155,7 @@ func (v Validator) UpdateStatus(pool Pool, NewStatus sdk.BondStatus) (Validator,
 // Remove pool shares
 // Returns corresponding tokens, which could be burned (e.g. when slashing
 // a validator) or redistributed elsewhere
-func (v Validator) removePoolShares(pool Pool, poolShares sdk.Rat) (Validator, Pool, int64) {
+func (v Validator) RemovePoolShares(pool Pool, poolShares sdk.Rat) (Validator, Pool, int64) {
 	var tokens int64
 	switch v.Status() {
 	case sdk.Unbonded:
@@ -182,7 +182,7 @@ func (v Validator) EquivalentBondedShares(pool Pool) (eqBondedShares sdk.Rat) {
 
 // XXX Audit this function further to make sure it's correct
 // add tokens to a validator
-func (v Validator) addTokensFromDel(pool Pool,
+func (v Validator) AddTokensFromDel(pool Pool,
 	amount int64) (validator2 Validator, p2 Pool, issuedDelegatorShares sdk.Rat) {
 
 	exRate := v.DelegatorShareExRate(pool) // bshr/delshr
@@ -208,7 +208,7 @@ func (v Validator) addTokensFromDel(pool Pool,
 
 // remove delegator shares from a validator
 // NOTE this function assumes the shares have already been updated for the validator status
-func (v Validator) removeDelShares(pool Pool,
+func (v Validator) RemoveDelShares(pool Pool,
 	delShares sdk.Rat) (validator2 Validator, p2 Pool, createdCoins int64) {
 
 	amount := v.DelegatorShareExRate(pool).Mul(delShares)
