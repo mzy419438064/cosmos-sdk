@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/wire"
 	abci "github.com/tendermint/abci/types"
 	crypto "github.com/tendermint/go-crypto"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/wire"
 )
 
 // Validator defines the total amount of bond shares and their exchange rate to
@@ -60,7 +61,7 @@ func NewValidator(owner sdk.Address, pubKey crypto.PubKey, description Descripti
 }
 
 // only the vitals - does not check bond height of IntraTxCounter
-func (v Validator) equal(c2 Validator) bool {
+func (v Validator) Equal(c2 Validator) bool {
 	return v.PubKey.Equals(c2.PubKey) &&
 		bytes.Equal(v.Owner, c2.Owner) &&
 		v.PoolShares.Equal(c2.PoolShares) &&
