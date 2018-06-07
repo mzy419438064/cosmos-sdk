@@ -4,6 +4,7 @@
   file: path=keys state=directory
   connection: local
   run_once: true
+  become: no
 
 - name: Copy binary
   copy:
@@ -34,6 +35,7 @@
 - name: Write wallet word seed to file
   when: gentxresult["changed"]
   copy: "content={{walletkey.stdout}} dest=keys/node{{nodeid.stdout_lines[0]}}"
+  become: no
   connection: local
 
 - name: Find gentx file
