@@ -9,6 +9,7 @@ IMPROVEMENTS
 
 FIXES
 * [lcd] Switch to bech32 for addresses on all human readable inputs and outputs
+* [gaia] Added self delegation for validators in the genesis creation
 
 ## 0.18.0
 
