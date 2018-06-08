@@ -62,6 +62,8 @@ var (
 )
 
 func TestKeys(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	// empty keys
 	// XXX: the test comes with a key setup
@@ -138,6 +140,8 @@ func TestKeys(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	// node info
 	res, body := request(t, port, "GET", "/version", nil)
@@ -150,6 +154,8 @@ func TestVersion(t *testing.T) {
 }
 
 func TestNodeStatus(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	// node info
 	res, body := request(t, port, "GET", "/node_info", nil)
@@ -171,6 +177,8 @@ func TestNodeStatus(t *testing.T) {
 }
 
 func TestBlock(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	tests.WaitForHeight(2, port)
 
@@ -201,6 +209,8 @@ func TestBlock(t *testing.T) {
 }
 
 func TestValidators(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	var resultVals rpc.ResultValidatorsOutput
 
@@ -232,6 +242,9 @@ func TestValidators(t *testing.T) {
 }
 
 func TestCoinSend(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
+
 	bz, _ := hex.DecodeString("8FA6AB57AD6870F6B5B2E57735F38F2F30E73CB6")
 	someFakeAddr, _ := sdk.Bech32ifyAcc(bz)
 
@@ -266,6 +279,8 @@ func TestCoinSend(t *testing.T) {
 }
 
 func TestIBCTransfer(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	acc := getAccount(t, sendAddr)
 	initialBalance := acc.GetCoins()
@@ -290,6 +305,8 @@ func TestIBCTransfer(t *testing.T) {
 }
 
 func TestTxs(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	// TODO: re-enable once we can get txs by tag
 
@@ -326,6 +343,9 @@ func TestTxs(t *testing.T) {
 }
 
 func TestValidatorsQuery(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
+
 	validators := getValidators(t)
 	assert.Equal(t, len(validators), 2)
 
@@ -342,6 +362,8 @@ func TestValidatorsQuery(t *testing.T) {
 }
 
 func TestBond(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	// create bond TX
 	resultTx := doBond(t, port, seed)
@@ -362,6 +384,8 @@ func TestBond(t *testing.T) {
 }
 
 func TestUnbond(t *testing.T) {
+	_, _, cleanup := startTMAndLCD(t)
+	defer cleanup()
 
 	// create unbond TX
 	resultTx := doUnbond(t, port, seed)
@@ -381,21 +405,17 @@ func TestUnbond(t *testing.T) {
 	assert.Equal(t, "9/1", bond.Shares.String())
 }
 
-//__________________________________________________________
+//________________________________________________________________________________
 // helpers
 
 // strt TM and the LCD in process, listening on their respective sockets
-func startTMAndLCD() (*nm.Node, net.Listener, error) {
+func startTMAndLCD(t *testing.T) (node *nm.Node, lcd net.Listener, cleanup func()) {
 
 	dir, err := ioutil.TempDir("", "lcd_test")
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 	viper.Set(cli.HomeFlag, dir)
 	kb, err := keys.GetKeyBase() // dbm.NewMemDB()) // :(
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 
 	config := GetConfig()
 	config.Consensus.TimeoutCommit = 1000
@@ -411,9 +431,7 @@ func startTMAndLCD() (*nm.Node, net.Listener, error) {
 
 	genesisFile := config.GenesisFile()
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 
 	genDoc.Validators = append(genDoc.Validators,
 		tmtypes.GenesisValidator{
@@ -434,25 +452,18 @@ func startTMAndLCD() (*nm.Node, net.Listener, error) {
 	// test for simplicity
 	var appGenTxs [2]json.RawMessage
 	appGenTxs[0], _, _, err = gapp.GaiaAppGenTxNF(cdc, pk1, pk1.Address(), "test_val1", true)
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 	appGenTxs[1], _, _, err = gapp.GaiaAppGenTxNF(cdc, pk2, pk2.Address(), "test_val2", true)
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 
 	genesisState, err := gapp.GaiaAppGenState(cdc, appGenTxs[:])
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 
 	// add the sendAddr to genesis
 	var info cryptoKeys.Info
 	info, seed, err = kb.Create(name, password, cryptoKeys.AlgoEd25519) // XXX global seed
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
+
 	sendAddrHex, _ := sdk.GetAccAddressHex(info.PubKey.Address().String())
 	sendAddr, _ = sdk.Bech32ifyAcc(sendAddrHex) // XXX global
 	accAuth := auth.NewBaseAccountWithAddress(info.PubKey.Address())
@@ -461,34 +472,34 @@ func startTMAndLCD() (*nm.Node, net.Listener, error) {
 	genesisState.Accounts = append(genesisState.Accounts, acc)
 
 	appState, err := wire.MarshalJSONIndent(cdc, genesisState)
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
+
 	genDoc.AppStateJSON = appState
 
 	// LCD listen address
 	var listenAddr string
 	listenAddr, port, err = server.FreeTCPAddr()
-	if err != nil {
-		return nil, nil, err
-	}
+	require.NoError(t, err)
 
 	// XXX: need to set this so LCD knows the tendermint node address!
 	viper.Set(client.FlagNode, config.RPC.ListenAddress)
 	viper.Set(client.FlagChainID, genDoc.ChainID)
 
-	node, err := startTM(config, logger, genDoc, privVal, app)
-	if err != nil {
-		return nil, nil, err
-	}
-	lcd, err := startLCD(logger, listenAddr, cdc)
-	if err != nil {
-		return nil, nil, err
-	}
+	node, err = startTM(config, logger, genDoc, privVal, app)
+	require.NoError(t, err)
+	lcd, err = startLCD(logger, listenAddr, cdc)
+	require.NoError(t, err)
 
 	tests.WaitForStart(port)
 
-	return node, lcd, nil
+	// for use in defer
+	cleanup = func() {
+		node.Stop()
+		node.Wait()
+		lcd.Close()
+	}
+
+	return node, lcd, cleanup
 }
 
 // Create & start in-process tendermint node with memdb

@@ -40,9 +40,10 @@ func WaitForHeight(height int64, port string) {
 		var resultBlock ctypes.ResultBlock
 		err = cdc.UnmarshalJSON([]byte(body), &resultBlock)
 		if err != nil {
-			fmt.Println("RES", res)
-			fmt.Println("BODY", string(body))
-			panic(err)
+			continue
+			//fmt.Println("RES", res)
+			//fmt.Println("BODY", string(body))
+			//panic(err)
 		}
 
 		if resultBlock.Block.Height >= height {
