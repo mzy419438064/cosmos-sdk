@@ -388,9 +388,6 @@ func TestMsgSendDependent(t *testing.T) {
 	err = setGenesis(bapp, acc1)
 	require.Nil(t, err)
 
-	err = setGenesis(bapp, acc1)
-	assert.Nil(t, err)
-
 	// CheckDeliver
 	SignCheckDeliver(t, bapp, sendMsg1, []int64{0}, []int64{0}, true, priv1)
 
