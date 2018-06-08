@@ -9,7 +9,7 @@ const (
 	FlagHeight        = "height"
 	FlagTrustNode     = "trust-node"
 	FlagName          = "name"
-	FlagAccountNumber = "acccount-number"
+	FlagAccountNumber = "account-number"
 	FlagSequence      = "sequence"
 	FlagFee           = "fee"
 )
@@ -34,6 +34,7 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 	for _, c := range cmds {
 		c.Flags().String(FlagName, "", "Name of private key with which to sign")
+		c.Flags().Int64(FlagAccountNumber, 0, "AccountNumber number to sign the tx")
 		c.Flags().Int64(FlagSequence, 0, "Sequence number to sign the tx")
 		c.Flags().String(FlagFee, "", "Fee to pay along with transaction")
 		c.Flags().String(FlagChainID, "", "Chain ID of tendermint node")
